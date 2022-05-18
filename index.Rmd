@@ -1,0 +1,95 @@
+---
+title: "Multinomial Regression"
+author: "Salman Virani"
+date: '2022-05-18'
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    number_sections: yes
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+# Libraries
+```{r}
+library(readr)
+library(dplyr)
+library(nnet)
+library(caret)
+```
+
+# Data
+
+```{r}
+file_path1 <- "./data/training.csv"
+file_path2 <- "./data/testing.csv"
+
+if(!file.exists(file_path1)){
+  dir.create("./data")
+  url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+  download.file(url, file_path1)
+}
+
+if(!file.exists(file_path2)){
+  dir.create("./data")
+  url2 <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+  download.file(url2, destfile = file_path2)
+}
+
+train <- read_csv("./data/training.csv")
+test <- read_csv("./data/testing.csv")
+
+```
+
+# Data Wrangling
+
+```{r}
+remove_col <- colSums(is.na(train)) > 19000
+train <- train[,!remove_col]
+test <- test[,!remove_col]
+
+train$classe <- as.factor(train$classe)
+
+train <- train %>%
+  select(-1, -3:-7)
+
+test <- test %>%
+  select(-1, -3:-7)
+```
+
+# Multinomial Logistic Model
+
+```{r}
+model2 <- multinom(classe~., data = train)
+
+train <- train %>%
+  mutate(pred = predict(model2, newdata = train))
+
+```
+
+# Accuracy Measures
+
+```{r}
+conf_mat_train <- table(actual = train$classe, predicted = train$pred)
+
+confusionMatrix(conf_mat_train)
+
+```
+
+# Test Data
+
+We dont have the labels for the test data. 
+
+```{r}
+test <- test %>%
+  mutate(pred = predict(model2, newdata = test))
+```
+
