@@ -1,5 +1,5 @@
 ---
-title: "Multinomial Regression"
+title: "Multinomial Logisitic Regression"
 author: "Salman Virani"
 date: '2022-05-18'
 output: 
@@ -16,19 +16,28 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Background
 
-Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, we will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har
 
-# Libraries
-```{r}
+We want to predict the manner in which people do the exercise. This is the “classes” variable in the training set. We may use any of the other variables to predict with. We create a report describing all the analysis and in particular the prediction of 20 different test cases.
+
+The five different ‘classe’ factors in this dataset are: * Exactly according to the specification (Class A) * Throwing the elbows to the front (Class B) * Lifting the dumbbell only halfway (Class C) * Lowering the dumbbell only halfway (Class D) * Throwing the hips to the front (Class E)
+
+## Libraries
+
+We will be using the following libraries from CRAN; readr, dplyr, nnet, and caret.
+
+```{r echo=FALSE}
 library(readr)
 library(dplyr)
 library(nnet)
 library(caret)
 ```
 
-# Data
+## Data
 
-```{r}
+If the data is not available, then it will be downloaded and read into R.
+
+```{r echo=FALSE}
 file_path1 <- "./data/training.csv"
 file_path2 <- "./data/testing.csv"
 
@@ -51,7 +60,9 @@ test <- read_csv("./data/testing.csv")
 
 # Data Wrangling
 
-```{r}
+Some unnecessary columns needs to be removed before we can move on to modeling process. 
+
+```{r echo=FALSE}
 remove_col <- colSums(is.na(train)) > 19000
 train <- train[,!remove_col]
 test <- test[,!remove_col]
@@ -67,7 +78,7 @@ test <- test %>%
 
 # Multinomial Logistic Model
 
-```{r}
+```{r echo=FALSE}
 model2 <- multinom(classe~., data = train)
 
 train <- train %>%
@@ -77,7 +88,7 @@ train <- train %>%
 
 # Accuracy Measures
 
-```{r}
+```{r echo=FALSE}
 conf_mat_train <- table(actual = train$classe, predicted = train$pred)
 
 confusionMatrix(conf_mat_train)
@@ -88,7 +99,7 @@ confusionMatrix(conf_mat_train)
 
 We dont have the labels for the test data. 
 
-```{r}
+```{r echo=FALSE}
 test <- test %>%
   mutate(pred = predict(model2, newdata = test))
 ```

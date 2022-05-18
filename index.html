@@ -13,7 +13,7 @@
 
 <meta name="date" content="2022-05-18" />
 
-<title>Multinomial Regression</title>
+<title>Multinomial Logisitic Regression</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1506,7 +1506,7 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Multinomial Regression</h1>
+<h1 class="title toc-ignore">Multinomial Logisitic Regression</h1>
 <h4 class="author">Salman Virani</h4>
 <h4 class="date">2022-05-18</h4>
 
@@ -1522,17 +1522,25 @@ quantified self movement – a group of enthusiasts who take measurements
 about themselves regularly to improve their health, to find patterns in
 their behavior, or because they are tech geeks. One thing that people
 regularly do is quantify how much of a particular activity they do, but
-they rarely quantify how well they do it. In this project, your goal
-will be to use data from accelerometers on the belt, forearm, arm, and
-dumbell of 6 participants. They were asked to perform barbell lifts
-correctly and incorrectly in 5 different ways. More information is
-available from the website here: <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a> (see the section
-on the Weight Lifting Exercise Dataset).</p>
-</div>
-<div id="libraries" class="section level1" number="2">
-<h1><span class="header-section-number">2</span> Libraries</h1>
-<pre class="r"><code>library(readr)
-library(dplyr)</code></pre>
+they rarely quantify how well they do it. In this project, we will use
+data from accelerometers on the belt, forearm, arm, and dumbell of 6
+participants. They were asked to perform barbell lifts correctly and
+incorrectly in 5 different ways. More information is available from the
+website here: <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a></p>
+<p>We want to predict the manner in which people do the exercise. This
+is the “classes” variable in the training set. We may use any of the
+other variables to predict with. We create a report describing all the
+analysis and in particular the prediction of 20 different test
+cases.</p>
+<p>The five different ‘classe’ factors in this dataset are: * Exactly
+according to the specification (Class A) * Throwing the elbows to the
+front (Class B) * Lifting the dumbbell only halfway (Class C) * Lowering
+the dumbbell only halfway (Class D) * Throwing the hips to the front
+(Class E)</p>
+<div id="libraries" class="section level2" number="1.1">
+<h2><span class="header-section-number">1.1</span> Libraries</h2>
+<p>We will be using the following libraries from CRAN; readr, dplyr,
+nnet, and caret.</p>
 <pre><code>## 
 ## Attaching package: &#39;dplyr&#39;</code></pre>
 <pre><code>## The following objects are masked from &#39;package:stats&#39;:
@@ -1541,30 +1549,14 @@ library(dplyr)</code></pre>
 <pre><code>## The following objects are masked from &#39;package:base&#39;:
 ## 
 ##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>library(nnet)
-library(caret)</code></pre>
 <pre><code>## Warning: package &#39;caret&#39; was built under R version 4.1.3</code></pre>
 <pre><code>## Loading required package: ggplot2</code></pre>
 <pre><code>## Loading required package: lattice</code></pre>
 </div>
-<div id="data" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> Data</h1>
-<pre class="r"><code>file_path1 &lt;- &quot;./data/training.csv&quot;
-file_path2 &lt;- &quot;./data/testing.csv&quot;
-
-if(!file.exists(file_path1)){
-  dir.create(&quot;./data&quot;)
-  url &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;
-  download.file(url, file_path1)
-}
-
-if(!file.exists(file_path2)){
-  dir.create(&quot;./data&quot;)
-  url2 &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;
-  download.file(url2, destfile = file_path2)
-}
-
-train &lt;- read_csv(&quot;./data/training.csv&quot;)</code></pre>
+<div id="data" class="section level2" number="1.2">
+<h2><span class="header-section-number">1.2</span> Data</h2>
+<p>If the data is not available, then it will be downloaded and read
+into R.</p>
 <pre><code>## New names:
 ## * `` -&gt; ...1</code></pre>
 <pre><code>## Warning: One or more parsing issues, see `problems()` for details</code></pre>
@@ -1575,36 +1567,29 @@ train &lt;- read_csv(&quot;./data/training.csv&quot;)</code></pre>
 ## dbl (126): ...1, raw_timestamp_part_1, raw_timestamp_part_2, num_window, rol...
 ## 
 ## i Use `spec()` to retrieve the full column specification for this data.
-## i Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-<pre class="r"><code>test &lt;- read_csv(&quot;./data/testing.csv&quot;)</code></pre>
-<pre><code>## New names:
+## i Specify the column types or set `show_col_types = FALSE` to quiet this message.
+## New names:
 ## * `` -&gt; ...1
-## Rows: 20 Columns: 160-- Column specification --------------------------------------------------------
+## 
+## Rows: 20 Columns: 160
+## -- Column specification --------------------------------------------------------
 ## Delimiter: &quot;,&quot;
 ## chr   (3): user_name, cvtd_timestamp, new_window
 ## dbl  (57): ...1, raw_timestamp_part_1, raw_timestamp_part_2, num_window, rol...
 ## lgl (100): kurtosis_roll_belt, kurtosis_picth_belt, kurtosis_yaw_belt, skewn...
+## 
 ## i Use `spec()` to retrieve the full column specification for this data.
 ## i Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
 </div>
-<div id="data-wrangling" class="section level1" number="4">
-<h1><span class="header-section-number">4</span> Data Wrangling</h1>
-<pre class="r"><code>remove_col &lt;- colSums(is.na(train)) &gt; 19000
-train &lt;- train[,!remove_col]
-test &lt;- test[,!remove_col]
-
-train$classe &lt;- as.factor(train$classe)
-
-train &lt;- train %&gt;%
-  select(-1, -3:-7)
-
-test &lt;- test %&gt;%
-  select(-1, -3:-7)</code></pre>
 </div>
-<div id="multinomial-logistic-model" class="section level1" number="5">
-<h1><span class="header-section-number">5</span> Multinomial Logistic
+<div id="data-wrangling" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Data Wrangling</h1>
+<p>Some unnecessary columns needs to be removed before we can move on to
+modeling process.</p>
+</div>
+<div id="multinomial-logistic-model" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Multinomial Logistic
 Model</h1>
-<pre class="r"><code>model2 &lt;- multinom(classe~., data = train)</code></pre>
 <pre><code>## # weights:  295 (232 variable)
 ## initial  value 31580.390718 
 ## iter  10 value 26968.799258
@@ -1619,14 +1604,9 @@ Model</h1>
 ## iter 100 value 17293.398997
 ## final  value 17293.398997 
 ## stopped after 100 iterations</code></pre>
-<pre class="r"><code>train &lt;- train %&gt;%
-  mutate(pred = predict(model2, newdata = train))</code></pre>
 </div>
-<div id="accuracy-measures" class="section level1" number="6">
-<h1><span class="header-section-number">6</span> Accuracy Measures</h1>
-<pre class="r"><code>conf_mat_train &lt;- table(actual = train$classe, predicted = train$pred)
-
-confusionMatrix(conf_mat_train)</code></pre>
+<div id="accuracy-measures" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Accuracy Measures</h1>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##       predicted
@@ -1660,11 +1640,9 @@ confusionMatrix(conf_mat_train)</code></pre>
 ## Detection Prevalence   0.2844   0.1935   0.1744   0.1639   0.1838
 ## Balanced Accuracy      0.8534   0.7411   0.7525   0.7705   0.7992</code></pre>
 </div>
-<div id="test-data" class="section level1" number="7">
-<h1><span class="header-section-number">7</span> Test Data</h1>
+<div id="test-data" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Test Data</h1>
 <p>We dont have the labels for the test data.</p>
-<pre class="r"><code>test &lt;- test %&gt;%
-  mutate(pred = predict(model2, newdata = test))</code></pre>
 </div>
 
 
