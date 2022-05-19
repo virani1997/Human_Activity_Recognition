@@ -1,5 +1,5 @@
 ---
-title: "Classifation Algorithms to detect Human Activity"
+title: "Classification Algorithms to detect Human Activity"
 author: "Salman Virani"
 date: '2022-05-18'
 output: 
