@@ -24,20 +24,21 @@ The five different ‘classe’ factors in this dataset are: * Exactly according
 
 ## Libraries
 
-We will be using the following libraries from CRAN; readr, dplyr, nnet, and caret.
+We will be using the following libraries from CRAN; readr, dplyr, nnet, and caret. **readr** allows us to read the data into R workspace, **dplyr** allows data manipulation, **'caret** allows us to get the confusion matrix for our model, **nnet** allows access to the neural network and log model algorithms, and **rsample** lets us split the data into training and validating.
 
-```{r echo=FALSE}
+```{r echo=FALSE, comment=""}
 library(readr)
 library(dplyr)
 library(nnet)
 library(caret)
+library(rsample)
 ```
 
 ## Data
 
-If the data is not available, then it will be downloaded and read into R.
+If the data is not available, then it will be downloaded and read into R. At this point, train and test data is loaded in the environment. Note that our test data doesn't have predefined labels. We will divide our train data into training and validation to get the in sample and out sample measures of our model. Test data will be used to apply our model like in real time. A basic snap of our train data is as below.It has 160 variables, among which our target varaible is **classe**
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, comment=""}
 file_path1 <- "./data/training.csv"
 file_path2 <- "./data/testing.csv"
 
@@ -54,53 +55,80 @@ if(!file.exists(file_path2)){
 }
 
 train <- read_csv("./data/training.csv")
-test <- read_csv("./data/testing.csv")
+testing <- read_csv("./data/testing.csv")
 
+head(train)
 ```
 
 # Data Wrangling
 
-Some unnecessary columns needs to be removed before we can move on to modeling process. 
+Some unnecessary columns needs to be removed before we can move on to modeling process. Firstly, the columns that have more than 19000 NAs are removed. Secondly, **classe** column has been coverted to factors. Thirdly, the initial train data is split into training and validating. Lastly, some unnecessary columns like id etc have been removed.
 
-```{r echo=FALSE}
+```{r echo=FALSE, comment=""}
 remove_col <- colSums(is.na(train)) > 19000
 train <- train[,!remove_col]
-test <- test[,!remove_col]
+testing <- testing[,!remove_col]
 
 train$classe <- as.factor(train$classe)
 
-train <- train %>%
+initial_split <- initial_split(train, prop = 0.8)
+training <- training(initial_split)
+validating <- testing(initial_split)
+
+training <- training %>%
   select(-1, -3:-7)
 
-test <- test %>%
+validating <- validating %>%
+  select(-1, -3:-7)
+
+testing <- testing %>%
   select(-1, -3:-7)
 ```
 
 # Multinomial Logistic Model
 
-```{r echo=FALSE}
-model2 <- multinom(classe~., data = train)
+```{r echo=FALSE, comment=""}
+model <- multinom(classe~., data = training)
 
-train <- train %>%
-  mutate(pred = predict(model2, newdata = train))
+training <- training %>%
+  mutate(pred_multilog = predict(model, newdata = training))
 
-```
-
-# Accuracy Measures
-
-```{r echo=FALSE}
-conf_mat_train <- table(actual = train$classe, predicted = train$pred)
-
-confusionMatrix(conf_mat_train)
+validating <- validating %>%
+  mutate(pred_multilog = predict(model, newdata = validating))
 
 ```
 
-# Test Data
+## Accuracy Measures
 
-We dont have the labels for the test data. 
+```{r echo=FALSE, comment=""}
+conf_mat_training <- table(actual = training$classe, predicted = training$pred_multilog)
 
-```{r echo=FALSE}
-test <- test %>%
-  mutate(pred = predict(model2, newdata = test))
+conf_mat_validating <- table(actual = validating$classe, predicted = validating$pred_multilog)
+
+plot(conf_mat_training)
+confusionMatrix(conf_mat_training)
+
+plot(conf_mat_validating)
+confusionMatrix(conf_mat_validating)
+
 ```
 
+## Test Data
+
+We dont have the labels for the test data. We predict the positions of the test data and export the results into a csv file.
+
+```{r echo=FALSE, comment=""}
+testing <- testing %>%
+  mutate(pred_multilog = predict(model, newdata = testing))
+
+testing %>%
+  select(pred_multilog)
+
+testing_pred_multilog <- as.data.frame(testing$pred_multilog)
+
+write_csv(testing_pred_multilog, "testing_results.csv")
+```
+
+# Conclusion
+
+I wished to apply some other models like decision trees, and random forests from which I expected to get better accuracy. However, computation power limitation doesn't allow us to do so at this time. 
