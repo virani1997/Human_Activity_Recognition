@@ -1,37 +1,9 @@
-## Welcome to GitHub Pages
+# Multinomial Logistic Regression
 
-You can use the [editor on GitHub](https://github.com/virani1997/Human_Activity_Recognition/edit/main/README.md) to maintain and preview the content for your website in Markdown files.
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, we will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+We want to predict the manner in which people do the exercise. This is the “classes” variable in the training set. We may use any of the other variables to predict with. We create a report describing all the analysis and in particular the prediction of 20 different test cases.
 
-### Markdown
+The five different ‘classe’ factors in this dataset are: * Exactly according to the specification (Class A) * Throwing the elbows to the front (Class B) * Lifting the dumbbell only halfway (Class C) * Lowering the dumbbell only halfway (Class D) * Throwing the hips to the front (Class E)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/virani1997/Human_Activity_Recognition/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+Please visit the site to view the project: https://virani1997.github.io/Human_Activity_Recognition/
