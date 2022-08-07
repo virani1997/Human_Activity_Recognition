@@ -1,0 +1,208 @@
+---
+title: "Classification Algorithms to detect Human Activity"
+author: "Salman Virani"
+date: '5-08-2022'
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+    toc_float: yes
+    number_sections: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. This project will use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har
+
+The study will predict the manner in which people do the exercise. This is the **classes** variable in the train set. 
+
+The five different ‘classe’ factors in this dataset are: * Exactly according to the specification (Class A) * Throwing the elbows to the front (Class B) * Lifting the dumbbell only halfway (Class C) * Lowering the dumbbell only halfway (Class D) * Throwing the hips to the front (Class E)
+
+Data comes from this [source](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv)
+
+## Libraries
+
+The study uses the following libraries from CRAN; **readr**, **rsample**, **dplyr**, **nnet**, **rpart** and **caret**.
+
+```{r comment="", warning=FALSE}
+suppressPackageStartupMessages(library(readr))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(nnet))
+suppressPackageStartupMessages(library(caret))
+suppressPackageStartupMessages(library(rsample))
+suppressPackageStartupMessages(library(rpart))
+suppressPackageStartupMessages(library(randomForest))
+```
+
+## Data
+
+If the data is not available, then it will be downloaded and read into R. Data will be divided into **train** and **test**. A basic snap of the data is as below. It has 160 variables, among which the target varaible is **classe**   
+
+```{r message=FALSE, warning=FALSE, comment=""}
+file_path1 <- "./data/training.csv"
+
+if(!file.exists(file_path1)){
+  dir.create("./data")
+  url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+  download.file(url, file_path1)
+}
+
+
+data <- read_csv("./data/training.csv")
+
+head(data)
+```
+
+# Data Wrangling
+
+Some unnecessary columns needs to be removed before moving to modeling stage. Firstly, the columns that have more than 19000 NAs are removed. Secondly, **classe** column has been converted to factors. Thirdly, the initial data is split into train and test. Lastly, some unnecessary columns like id, timestamp etc have been removed.
+
+```{r comment=""}
+remove_col <- colSums(is.na(data)) > 19000
+data <- data[,!remove_col]
+data <- data %>%
+  select(-1:-7)
+
+data$classe <- as.factor(data$classe)
+
+initial_split <- initial_split(data, prop = 0.8)
+train <- training(initial_split)
+test <- testing(initial_split)
+rm(initial_split)
+```
+
+## Descriptive Statistics
+
+A statistical summary of different variables of test data is provided below. 
+
+```{r comment=""}
+summary(test)
+```
+
+
+# Multinomial Logistic Regression Model
+
+```{r cache=TRUE, comment=""}
+model_multilog <- multinom(classe~., data = train)
+
+train <- train %>%
+  mutate(pred_multilog = predict(model_multilog, newdata = train))
+
+test <- test %>%
+  mutate(pred_multilog = predict(model_multilog, newdata = test))
+
+```
+
+## Accuracy Measures
+
+```{r comment=""}
+conf_mat_multilog_train <- table(actual = train$classe, predicted = train$pred_multilog)
+
+conf_mat_multilog_test <- table(actual = test$classe, predicted = test$pred_multilog)
+
+plot(conf_mat_multilog_train, color = "#3B61EA")
+confusionMatrix(conf_mat_multilog_train)
+
+plot(conf_mat_multilog_test, color = "#3B61EA")
+confusionMatrix(conf_mat_multilog_test)
+```
+
+# KNN
+
+```{r cache=TRUE, comment=""}
+model_knn <- train(classe~., data = train, method = "knn")
+model_knn
+```
+## Accuracy measures
+
+```{r comment=""}
+train$pred_knn <- predict(model_knn, newdata = train)
+
+conf_mat_knn_train <- table(actual = train$classe,
+                               predicted = train$pred_knn)
+
+plot(conf_mat_knn_train, color = "#3B61EA")
+confusionMatrix(conf_mat_knn_train)
+
+test$pred_knn <- predict(model_knn, newdata = test)
+
+conf_mat_knn_test <- table(actual = test$classe, 
+                                 predicted = test$pred_knn)
+
+plot(conf_mat_knn_test, color = "#3B61EA")
+confusionMatrix(conf_mat_knn_test)
+```
+
+# Decision Trees
+
+```{r cache=TRUE, comment=""}
+model_dc <- rpart(classe~., data = train, method = "class",
+                control = rpart.control(cp = 0))
+
+plotcp(model_dc)
+printcp(model_dc)
+```
+
+## Pruning
+
+Pruning a decision tree based on complexity parameter allows to extract better results from a decision tree model. 
+
+
+```{r comment=""}
+model_dc_pruned <- prune(model_dc, cp = 2.2799e-04)
+rm(model_dc)
+```
+
+## Accuracy Measures
+
+```{r comment=""}
+train$pred_dc <- predict(model_dc_pruned, newdata = train, type = "class")
+
+conf_mat_tree_train <- table(actual = train$classe,
+                                predicted = train$pred_dc)
+
+plot(conf_mat_tree_train, color = "#3B61EA")
+confusionMatrix(conf_mat_tree_train)
+
+test$pred_dc <- predict(model_dc_pruned, newdata = test, type = "class")
+
+conf_mat_tree_test <- table(actual = test$classe,
+                           predicted = test$pred_dc)
+
+plot(conf_mat_tree_test, color = "#3B61EA")
+confusionMatrix(conf_mat_tree_test)
+```
+
+# Ensemble Method: Random Forest
+
+```{r}
+model_rf <- randomForest(formula = classe~., data = train, ntree = 500)
+```
+
+## Accuracy Measures
+
+```{r}
+train$pred_rf <- predict(model_rf, newdata = train)
+conf_mat_rf_train <- table(actual = train$classe, predicted = train$pred_rf)
+
+plot(conf_mat_rf_train, color = "#3B61EA")
+confusionMatrix(conf_mat_rf_train)
+
+test$pred_rf <- predict(model_rf, newdata = test)
+conf_mat_rf_test <- table(actual = test$classe, predicted = test$pred_rf)
+
+plot(conf_mat_rf_test, color = "#3B61EA")
+confusionMatrix(conf_mat_rf_test)
+```
+
+
+# Conclusion
+
+Random Forests provides the best prediction rates. However, one important thing to note here is that the training data prediction rate of random forest algorithm is 1. This suggests some over fitting as the testing data prediction rate decreases to 0.9656. These are some advanced topics not currently in the scope of this project, but will be discussed in the upcoming projects. 
+
+I hope you have enjoyed and learned from this project. You can support me my keeping yourself updated with future projects. For that, kindly follow my [GitHub](https://github.com/virani1997) and [Twitter](https://twitter.com/SalmanVirani6) profiles.
